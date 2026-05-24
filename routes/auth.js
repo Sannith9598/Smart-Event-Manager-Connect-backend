@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User, EventManager, Otp, LoginAttempt } = require("../models");
-const { Resend } = require("resend");
+const { sendEmail } = require("../utils/emailTemplates");
 const rateLimit = require("express-rate-limit");
 
 // Constants
@@ -74,10 +74,8 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ─── Email (Resend) ──────────────────────────────────────────────────────────
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.FROM_EMAIL || "EventHub <onboarding@resend.dev>";
+// ─── Email (Brevo HTTP API via shared utility) ──────────────────────────────
+const FROM_EMAIL = process.env.FROM_EMAIL || "mailserviceforproject@gmail.com";
 
 // ─── OTP Helpers (Database-backed) ──────────────────────────────────────────
 
@@ -150,8 +148,7 @@ router.post("/send-otp", otpLimiter, async (req, res) => {
     const otp = generateOTP();
     await storeOtp(email, otp, "registration");
 
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: email,
       subject: "Your OTP for Registration",
       html: `
@@ -432,8 +429,7 @@ router.post("/forgot-password", otpLimiter, async (req, res) => {
     const otp = generateOTP();
     await storeOtp(email, otp, "password_reset");
 
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: email,
       subject: "Password Reset OTP - EventHub",
       html: `
