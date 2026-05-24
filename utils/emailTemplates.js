@@ -6,6 +6,21 @@ const FROM_EMAIL = process.env.FROM_EMAIL || "mailserviceforproject@gmail.com";
 const FROM_NAME = process.env.FROM_NAME || "EventHub";
 
 const sendEmail = async ({ to, subject, html, text }) => {
+  // Brevo requires textContent to be a non-empty string
+  const textContent = text || subject || "EventHub Notification";
+  
+  const body = {
+    sender: { name: FROM_NAME, email: FROM_EMAIL },
+    to: [{ email: to }],
+    subject,
+    textContent,
+  };
+
+  // Only add htmlContent if html is provided
+  if (html) {
+    body.htmlContent = html;
+  }
+
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -13,13 +28,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
       "content-type": "application/json",
       "api-key": BREVO_API_KEY,
     },
-    body: JSON.stringify({
-      sender: { name: FROM_NAME, email: FROM_EMAIL },
-      to: [{ email: to }],
-      subject,
-      htmlContent: html,
-      textContent: text || subject || "EventHub Notification",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
