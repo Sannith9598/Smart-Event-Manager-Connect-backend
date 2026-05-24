@@ -18,7 +18,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
       to: [{ email: to }],
       subject,
       htmlContent: html,
-      textContent: text || "",
+      textContent: text || subject || "EventHub Notification",
     }),
   });
 
