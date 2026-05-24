@@ -1,12 +1,19 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.APP_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Sender address - use Resend's default or your verified domain
+const FROM_EMAIL = process.env.FROM_EMAIL || "EventHub <onboarding@resend.dev>";
+
+const sendEmail = async ({ to, subject, text, html }) => {
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject,
+    text,
+    html,
+  });
+};
 
 const sendBookingConfirmation = async (customerEmail, customerName, booking, event, manager) => {
   const textContent = `Booking Confirmed!\n\nHello ${customerName},\n\nYour booking has been confirmed.\n\nEvent: ${event?.name || 'Event'}\nDate: ${new Date(booking.eventDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}\nGuests: ${booking.guests || 1}\nTotal Price: ₹${booking.totalPrice?.toLocaleString() || 0}\nManager: ${manager?.name || 'Event Manager'}\n\n— EventHub Team`;
@@ -37,7 +44,7 @@ const sendBookingConfirmation = async (customerEmail, customerName, booking, eve
     </div>
   `;
 
-  await transporter.sendMail({
+  await sendEmail({
     to: customerEmail,
     subject: `✅ Booking Confirmed - ${event?.name || 'Your Event'}`,
     text: textContent,
@@ -70,7 +77,7 @@ const sendBookingRejection = async (customerEmail, customerName, booking, event,
     </div>
   `;
 
-  await transporter.sendMail({
+  await sendEmail({
     to: customerEmail,
     subject: `Booking Update - ${event?.name || 'Your Event'}`,
     text: textContent,
@@ -110,7 +117,7 @@ const sendNewBookingToManager = async (managerEmail, managerName, booking, event
     </div>
   `;
 
-  await transporter.sendMail({
+  await sendEmail({
     to: managerEmail,
     subject: `📋 New Booking Request - ${event?.name || 'Event'}`,
     text: textContent,
@@ -142,7 +149,7 @@ const sendBookingCompleted = async (customerEmail, customerName, booking, event)
     </div>
   `;
 
-  await transporter.sendMail({
+  await sendEmail({
     to: customerEmail,
     subject: `🎊 Event Completed - ${event?.name || 'Your Event'}`,
     text: textContent,
@@ -151,7 +158,7 @@ const sendBookingCompleted = async (customerEmail, customerName, booking, event)
 };
 
 module.exports = {
-  transporter,
+  sendEmail,
   sendBookingConfirmation,
   sendBookingRejection,
   sendNewBookingToManager,

@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User, EventManager, Otp, LoginAttempt } = require("../models");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const rateLimit = require("express-rate-limit");
 
 // Constants
@@ -74,15 +74,10 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ─── Email Transporter ───────────────────────────────────────────────────────
+// ─── Email (Resend) ──────────────────────────────────────────────────────────
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.APP_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.FROM_EMAIL || "EventHub <onboarding@resend.dev>";
 
 // ─── OTP Helpers (Database-backed) ──────────────────────────────────────────
 
@@ -155,7 +150,8 @@ router.post("/send-otp", otpLimiter, async (req, res) => {
     const otp = generateOTP();
     await storeOtp(email, otp, "registration");
 
-    await transporter.sendMail({
+    await resend.emails.send({
+      from: FROM_EMAIL,
       to: email,
       subject: "Your OTP for Registration",
       html: `
@@ -436,7 +432,8 @@ router.post("/forgot-password", otpLimiter, async (req, res) => {
     const otp = generateOTP();
     await storeOtp(email, otp, "password_reset");
 
-    await transporter.sendMail({
+    await resend.emails.send({
+      from: FROM_EMAIL,
       to: email,
       subject: "Password Reset OTP - EventHub",
       html: `
